@@ -24,14 +24,20 @@ data, provenance = dataset(); pack = model()
 page = st.sidebar.radio("Navigate", ["Overview", "Portfolio explorer", "PD model lab", "Single prediction", "Expected loss", "Monitoring", "Model registry", "Documentation"])
 
 if page == "Overview":
-    st.write("A reproducible credit-risk modelling platform built from public data."); st.json(provenance)
+    st.write("A reproducible credit-risk modelling platform built from public data.")
+    overview = st.columns(4); overview[0].metric("Dataset", provenance.get("version", "unknown")); overview[1].metric("Rows", provenance.get("rows", len(data))); overview[2].metric("Target", "Binary bad outcome"); overview[3].metric("Source", "UCI")
+    st.subheader("Data provenance")
+    st.table({"Field": ["Source", "Dataset version", "SHA-256", "Target mapping"], "Value": [provenance.get("source"), provenance.get("version"), provenance.get("sha256"), provenance.get("target")]})
 elif page == "Portfolio explorer":
     st.metric("Rows", len(data)); st.metric("Bad-outcome rate", f"{data.target.mean():.1%}"); st.bar_chart(data.target.value_counts())
     st.dataframe(data.head(10), use_container_width=True)
 elif page == "PD model lab":
     cols = st.columns(4)
     for col, key in zip(cols, ["roc_auc", "gini", "ks", "brier"]): col.metric(key.upper(), f"{pack['metadata'][key]:.3f}")
-    st.json(pack["metadata"])
+    st.subheader("Validation summary")
+    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Brier", "Training rows", "Test rows", "Seed"], "Value": [pack["metadata"].get("roc_auc"), pack["metadata"].get("gini"), pack["metadata"].get("ks"), pack["metadata"].get("brier"), pack["metadata"].get("n_train"), pack["metadata"].get("n_test"), pack["metadata"].get("seed")]})
+    matrix = pack["metadata"].get("confusion_matrix")
+    if matrix: st.subheader("Confusion matrix"); st.dataframe({"Actual good": matrix[0], "Actual bad": matrix[1]}, use_container_width=True)
     if pack["metadata"].get("calibration"):
         st.line_chart({"observed": pack["metadata"]["calibration"]["observed"], "predicted": pack["metadata"]["calibration"]["predicted"]})
     if Path("artifacts/validation_evidence.json").exists():
@@ -40,7 +46,13 @@ elif page == "Single prediction":
     row = data.drop(columns="target").iloc[[0]]
     if st.button("Score sample applicant"):
         p = float(pack["model"].predict_proba(row)[0, 1]); st.metric("Probability of bad outcome", f"{p:.1%}"); st.write("Risk band:", "high" if p >= .5 else "medium" if p >= .2 else "low")
-    st.json(explain_sample(pack["model"], data))
+    explanation = explain_sample(pack["model"], data)
+    st.subheader("Applicant features"); st.dataframe(row, use_container_width=True, hide_index=True)
+    st.subheader("SHAP contributors")
+    if explanation.get("values"):
+        contributors = sorted(({"Feature": k, "Contribution": v} for k, v in explanation["values"].items()), key=lambda item: abs(item["Contribution"]), reverse=True)
+        st.dataframe(contributors, use_container_width=True, hide_index=True)
+    else: st.info("SHAP explanation is unavailable in this hosted runtime.")
 elif page == "Expected loss":
     lgd, _ = generate_lgd(100); ead, _ = generate_ead(100); rows = lgd[["lgd"]].join(ead[["ead_at_default"]].rename(columns={"ead_at_default": "ead"})); rows["pd"] = .2
     scenario = st.selectbox("Scenario", ["upside", "base", "downside"]); st.metric("Synthetic ECL", f"{calculate_portfolio_ecl(rows, scenario)['ecl']:,.2f}")
