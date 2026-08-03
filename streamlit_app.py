@@ -5,7 +5,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 import streamlit as st
 import json
 from credit_risk_lab.core import load_data, load_model, explain_sample
-from credit_risk_lab.extensions import calculate_portfolio_ecl, generate_ead, generate_lgd, monitoring_summary
+from credit_risk_lab.extensions import calculate_portfolio_ecl, generate_ead, generate_lgd, monitoring_summary, performance_summary
+from credit_risk_lab.longitudinal import generate_longitudinal
 from credit_risk_lab.registry import latest_run
 
 st.set_page_config(page_title="CreditRiskLab", layout="wide")
@@ -44,7 +45,16 @@ elif page == "Expected loss":
     lgd, _ = generate_lgd(100); ead, _ = generate_ead(100); rows = lgd[["lgd"]].join(ead[["ead_at_default"]].rename(columns={"ead_at_default": "ead"})); rows["pd"] = .2
     scenario = st.selectbox("Scenario", ["upside", "base", "downside"]); st.metric("Synthetic ECL", f"{calculate_portfolio_ecl(rows, scenario)['ecl']:,.2f}")
 elif page == "Monitoring":
-    reference = data.drop(columns="target"); current = reference * 1.15; st.json(monitoring_summary(reference, current))
+    reference = data.drop(columns="target"); current = reference * 1.15; summary = monitoring_summary(reference, current)
+    status = summary["status"].upper(); st.metric("Drift status", status); st.caption("PSI is illustrative synthetic monitoring; it is not a temporal backtest of South German Credit.")
+    st.subheader("Feature drift")
+    drift = [{"Feature": feature, "PSI": value, "Interpretation": "warning" if value >= .25 else "stable"} for feature, value in summary["features"].items()]
+    st.dataframe(drift, use_container_width=True, hide_index=True)
+    st.subheader("Synthetic longitudinal performance")
+    performance = performance_summary(generate_longitudinal())
+    performance_rows = [{"Period": period, **values} for period, values in performance["periods"].items()]
+    st.dataframe(performance_rows, use_container_width=True, hide_index=True)
+    st.info("A warning means the illustrative shifted sample exceeded the PSI threshold of 0.25. Investigate before treating any monitoring result as model evidence.")
 elif page == "Model registry":
     metadata = latest_run() or pack["metadata"]
     st.subheader(metadata.get("model_name", "pd_logistic_baseline"))
