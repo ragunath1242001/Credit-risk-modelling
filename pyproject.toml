@@ -1,0 +1,13 @@
+[project]
+name = "credit-risk-lab"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["pandas", "numpy<2", "scikit-learn", "xgboost", "shap", "optuna", "fastapi", "uvicorn", "streamlit", "joblib", "psycopg[binary]"]
+
+[project.optional-dependencies]
+tracking = ["mlflow"]
+postgres = ["psycopg[binary]"]
+quality = ["great-expectations", "evidently"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

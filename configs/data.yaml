@@ -1,0 +1,3 @@
+dataset_version: south_german_credit_v1
+source: https://archive.ics.uci.edu/static/public/522/south+german+credit.zip
+synthetic_extensions: [synthetic_recovery_v1, synthetic_revolving_ead_v1, synthetic_longitudinal_v1]

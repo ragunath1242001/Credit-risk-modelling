@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.venv/
+artifacts/
+build/
+mlflow.db
+mlruns/
+*.egg-info/
+*.html
+*.pyc
