@@ -138,10 +138,12 @@ def risk_bands(probabilities: np.ndarray) -> list[str]:
 def explain_sample(model, frame: pd.DataFrame, row: int = 0) -> dict:
     try:
         import shap
-        x = frame.drop(columns="target").iloc[[row]]
-        values = shap.Explainer(model.predict_proba, x)(x).values[0]
+        features = frame.drop(columns="target")
+        x = features.iloc[[row]]
+        background = features.sample(min(100, len(features)), random_state=42)
+        values = shap.Explainer(model.predict_proba, background)(x).values[0]
         values = values[:, 1] if values.ndim == 2 else values
-        return {"method": "SHAP", "values": {c: float(v) for c, v in zip(x.columns, values)}}
+        return {"method": "SHAP", "baseline": "average prediction over 100 representative applicants", "values": {c: float(v) for c, v in zip(x.columns, values)}}
     except Exception as exc:
         return {"method": "unavailable", "reason": str(exc)}
 
