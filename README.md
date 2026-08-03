@@ -100,7 +100,7 @@ Invoke-RestMethod http://127.0.0.1:8000/v1/pd/predict -Method Post -ContentType 
 
 The reproducible baseline run currently reports approximately:
 
-| Model | ROC AUC | Gini | KS | Brier |
+| Model | ROC AUC | Gini | KS | Brier score |
 |---|---:|---:|---:|---:|
 | Logistic regression | 0.754 | 0.508 | 0.377 | 0.175 |
 | XGBoost challenger | 0.773 | 0.546 | 0.394 | 0.166 |
