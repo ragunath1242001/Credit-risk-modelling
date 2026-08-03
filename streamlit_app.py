@@ -60,7 +60,7 @@ elif page == "Monitoring":
     reference = data.drop(columns="target"); current = reference * 1.15; summary = monitoring_summary(reference, current)
     status = summary["status"].upper(); st.metric("Drift status", status); st.caption("PSI is illustrative synthetic monitoring; it is not a temporal backtest of South German Credit.")
     st.subheader("Feature drift")
-    drift = [{"Feature": feature, "PSI": value, "Interpretation": "warning" if value >= .25 else "stable"} for feature, value in summary["features"].items()]
+    drift = [{"Feature": FEATURE_LABELS.get(feature, feature), "PSI": value, "Interpretation": "warning" if value >= .25 else "stable"} for feature, value in summary["features"].items()]
     st.dataframe(drift, use_container_width=True, hide_index=True)
     st.subheader("Synthetic longitudinal performance")
     performance = performance_summary(generate_longitudinal())
