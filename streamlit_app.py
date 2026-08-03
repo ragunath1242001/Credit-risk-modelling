@@ -41,7 +41,7 @@ elif page == "PD model lab":
     if pack["metadata"].get("calibration"):
         st.line_chart({"observed": pack["metadata"]["calibration"]["observed"], "predicted": pack["metadata"]["calibration"]["predicted"]})
     if Path("artifacts/validation_evidence.json").exists():
-        evidence = json.loads(Path("artifacts/validation_evidence.json").read_text()); st.subheader("Threshold sensitivity"); st.dataframe(evidence["thresholds"]); st.subheader("Segment evidence"); st.json(evidence["segments"])
+        evidence = json.loads(Path("artifacts/validation_evidence.json").read_text()); st.subheader("Threshold sensitivity"); st.dataframe(evidence["thresholds"], use_container_width=True, hide_index=True); st.subheader("Segment evidence"); st.dataframe([{"Segment": k, **v} for k, v in evidence["segments"].items()], use_container_width=True, hide_index=True)
 elif page == "Single prediction":
     row = data.drop(columns="target").iloc[[0]]
     if st.button("Score sample applicant"):
@@ -81,7 +81,6 @@ elif page == "Model registry":
     st.subheader("Evidence")
     evidence = {"Calibrated probabilities": metadata.get("calibrated", False), "SHAP artifact": Path(metadata.get("shap_artifact", "artifacts/shap.json")).exists(), "Optuna tuning": bool(metadata.get("optuna")), "Challenger ROC AUC": metadata.get("challenger_roc_auc", "not available in hosted fallback")}
     st.table({"Item": list(evidence), "Value": list(evidence.values())})
-    with st.expander("Raw run metadata"):
-        st.json(metadata)
+    st.caption("Detailed run metadata is stored in the local registry/MLflow artifacts.")
 else:
     st.markdown("South German Credit is historical, small, and not longitudinal. LGD, EAD, recovery, monitoring and expected-loss examples are synthetic. No temporal backtest or regulatory/IFRS 9 claim is made.")
