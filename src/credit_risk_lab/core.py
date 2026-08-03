@@ -90,7 +90,7 @@ def train_challenger(frame: pd.DataFrame, seed: int = 42, params: dict | None = 
     """Bounded XGBoost challenger."""
     validate(frame); x, y = frame.drop(columns="target"), frame.target
     cat = [c for c in x if x[c].nunique() <= 10]; num = [c for c in x if c not in cat]
-    pre = ColumnTransformer([("num", SimpleImputer(strategy="median"), num), ("cat", Pipeline([("impute", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore"))]), cat)])
+    pre = ColumnTransformer([("num", SimpleImputer(strategy="median"), num), ("cat", Pipeline([("impute", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))]), cat)])
     try:
         from xgboost import XGBClassifier
         xgb_params = {"n_estimators": 120, "max_depth": 3, "learning_rate": .05, "subsample": .8, "colsample_bytree": .8, "eval_metric": "logloss", "random_state": seed, "n_jobs": 1}; xgb_params.update(params or {})
