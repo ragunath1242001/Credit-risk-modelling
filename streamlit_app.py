@@ -33,9 +33,10 @@ elif page == "Portfolio explorer":
     st.dataframe(data.head(10).rename(columns=FEATURE_LABELS), use_container_width=True)
 elif page == "PD model lab":
     cols = st.columns(4)
-    for col, key, label in zip(cols, ["roc_auc", "gini", "ks", "brier"], ["ROC AUC", "Gini", "KS", "Brier score"]): col.metric(label, f"{pack['metadata'][key]:.3f}")
+    for col, key, label in zip(cols, ["roc_auc", "gini", "ks", "brier"], ["ROC AUC", "Gini", "KS", "Probability accuracy"]): col.metric(label, f"{pack['metadata'][key]:.3f}")
+    st.caption("Probability accuracy (Brier score): lower is better; 0 is perfect.")
     st.subheader("Validation summary")
-    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Brier score", "Training rows", "Test rows", "Seed"], "Value": [pack["metadata"].get("roc_auc"), pack["metadata"].get("gini"), pack["metadata"].get("ks"), pack["metadata"].get("brier"), pack["metadata"].get("n_train"), pack["metadata"].get("n_test"), pack["metadata"].get("seed")]})
+    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Probability accuracy (Brier)", "Training rows", "Test rows", "Seed"], "Value": [pack["metadata"].get("roc_auc"), pack["metadata"].get("gini"), pack["metadata"].get("ks"), pack["metadata"].get("brier"), pack["metadata"].get("n_train"), pack["metadata"].get("n_test"), pack["metadata"].get("seed")]})
     matrix = pack["metadata"].get("confusion_matrix")
     if matrix: st.subheader("Confusion matrix"); st.dataframe({"Actual good": matrix[0], "Actual bad": matrix[1]}, use_container_width=True)
     if pack["metadata"].get("calibration"):
@@ -77,7 +78,7 @@ elif page == "Model registry":
     identity[3].metric("Dataset", metadata.get("dataset_version", "south_german_credit_v1"))
     st.caption("Approved for this educational demonstration only.")
     st.subheader("Validation metrics")
-    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Brier score", "Train rows", "Test rows"], "Value": [metadata.get("roc_auc"), metadata.get("gini"), metadata.get("ks"), metadata.get("brier"), metadata.get("n_train"), metadata.get("n_test")]})
+    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Probability accuracy (Brier)", "Train rows", "Test rows"], "Value": [metadata.get("roc_auc"), metadata.get("gini"), metadata.get("ks"), metadata.get("brier"), metadata.get("n_train"), metadata.get("n_test")]})
     st.subheader("Evidence")
     evidence = {"Calibrated probabilities": metadata.get("calibrated", False), "SHAP artifact": Path(metadata.get("shap_artifact", "artifacts/shap.json")).exists(), "Optuna tuning": bool(metadata.get("optuna")), "Challenger ROC AUC": metadata.get("challenger_roc_auc", "not available in hosted fallback")}
     st.table({"Item": list(evidence), "Value": list(evidence.values())})
