@@ -160,7 +160,7 @@ def load_model():
     import joblib
     if not ARTIFACT.exists():
         model, metrics = train_pd(load_data()[0])
-        save_model(model, metrics)
+        save_model(model, {**metrics, "model_name": "pd_logistic_baseline", "model_family": "logistic_regression", "model_version": "pd-v1", "status": "approved-for-demo", "calibrated": False})
     return joblib.load(ARTIFACT)
 
 

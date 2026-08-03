@@ -46,6 +46,20 @@ elif page == "Expected loss":
 elif page == "Monitoring":
     reference = data.drop(columns="target"); current = reference * 1.15; st.json(monitoring_summary(reference, current))
 elif page == "Model registry":
-    st.json(latest_run() or pack["metadata"])
+    metadata = latest_run() or pack["metadata"]
+    st.subheader(metadata.get("model_name", "pd_logistic_baseline"))
+    identity = st.columns(4)
+    identity[0].metric("Version", metadata.get("model_version", "pd-v1"))
+    identity[1].metric("Family", metadata.get("model_family", "logistic_regression"))
+    identity[2].metric("Status", metadata.get("status", "approved-for-demo"))
+    identity[3].metric("Dataset", metadata.get("dataset_version", "south_german_credit_v1"))
+    st.caption("Approved for this educational demonstration only.")
+    st.subheader("Validation metrics")
+    st.table({"Metric": ["ROC AUC", "Gini", "KS", "Brier", "Train rows", "Test rows"], "Value": [metadata.get("roc_auc"), metadata.get("gini"), metadata.get("ks"), metadata.get("brier"), metadata.get("n_train"), metadata.get("n_test")]})
+    st.subheader("Evidence")
+    evidence = {"Calibrated probabilities": metadata.get("calibrated", False), "SHAP artifact": Path(metadata.get("shap_artifact", "artifacts/shap.json")).exists(), "Optuna tuning": bool(metadata.get("optuna")), "Challenger ROC AUC": metadata.get("challenger_roc_auc", "not available in hosted fallback")}
+    st.table({"Item": list(evidence), "Value": list(evidence.values())})
+    with st.expander("Raw run metadata"):
+        st.json(metadata)
 else:
     st.markdown("South German Credit is historical, small, and not longitudinal. LGD, EAD, recovery, monitoring and expected-loss examples are synthetic. No temporal backtest or regulatory/IFRS 9 claim is made.")
