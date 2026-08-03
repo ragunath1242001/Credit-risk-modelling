@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
 import json
-from credit_risk_lab.core import FEATURE_LABELS, load_data, load_model, explain_sample
+from credit_risk_lab.core import FEATURE_LABELS, load_data, load_model, load_models, explain_sample
 from credit_risk_lab.extensions import calculate_portfolio_ecl, generate_ead, generate_lgd, monitoring_summary, performance_summary
 from credit_risk_lab.longitudinal import generate_longitudinal
 from credit_risk_lab.registry import latest_run
@@ -20,7 +20,10 @@ def dataset(): return load_data()
 @st.cache_resource
 def model(): return load_model()
 
-data, provenance = dataset(); pack = model()
+@st.cache_resource
+def models(): return load_models()
+
+data, provenance = dataset(); pack = model(); available_models = models()
 page = st.sidebar.radio("Navigate", ["Overview", "Portfolio explorer", "PD model lab", "Single prediction", "Expected loss", "Monitoring", "Model registry", "Documentation"])
 
 if page == "Overview":
@@ -32,8 +35,10 @@ elif page == "Portfolio explorer":
     st.metric("Rows", len(data)); st.metric("Bad-outcome rate", f"{data.target.mean():.1%}"); st.bar_chart(data.target.value_counts())
     st.dataframe(data.head(10).rename(columns=FEATURE_LABELS), use_container_width=True)
 elif page == "PD model lab":
+    selected_model = st.selectbox("Model for scoring", list(available_models), key="lab_model")
     cols = st.columns(4)
     for col, key, label in zip(cols, ["roc_auc", "gini", "ks", "brier"], ["ROC AUC", "Gini", "KS", "Probability accuracy"]): col.metric(label, f"{pack['metadata'][key]:.3f}")
+    st.caption(f"Metrics shown for the logistic baseline. Selected scoring model: {selected_model}.")
     st.caption("Probability accuracy (Brier score): lower is better; 0 is perfect.")
     st.subheader("Validation summary")
     st.table({"Metric": ["ROC AUC", "Gini", "KS", "Probability accuracy (Brier)", "Training rows", "Test rows", "Seed"], "Value": [pack["metadata"].get("roc_auc"), pack["metadata"].get("gini"), pack["metadata"].get("ks"), pack["metadata"].get("brier"), pack["metadata"].get("n_train"), pack["metadata"].get("n_test"), pack["metadata"].get("seed")]})
@@ -44,10 +49,12 @@ elif page == "PD model lab":
     if Path("artifacts/validation_evidence.json").exists():
         evidence = json.loads(Path("artifacts/validation_evidence.json").read_text()); st.subheader("Threshold sensitivity"); st.dataframe(evidence["thresholds"], use_container_width=True, hide_index=True); st.subheader("Segment evidence"); st.dataframe([{"Segment": k, **v} for k, v in evidence["segments"].items()], use_container_width=True, hide_index=True)
 elif page == "Single prediction":
+    selected_model = st.selectbox("Choose model", list(available_models), key="prediction_model")
+    scoring_model = available_models[selected_model]
     row = data.drop(columns="target").iloc[[0]]
     if st.button("Score sample applicant"):
-        p = float(pack["model"].predict_proba(row)[0, 1]); st.metric("Probability of bad outcome", f"{p:.1%}"); st.write("Risk band:", "high" if p >= .5 else "medium" if p >= .2 else "low")
-    explanation = explain_sample(pack["model"], data)
+        p = float(scoring_model.predict_proba(row)[0, 1]); st.metric("Probability of bad outcome", f"{p:.1%}"); st.write("Risk band:", "high" if p >= .5 else "medium" if p >= .2 else "low"); st.caption(f"Scored with: {selected_model}")
+    explanation = explain_sample(scoring_model, data)
     st.subheader("Applicant features"); st.dataframe(row.rename(columns=FEATURE_LABELS), use_container_width=True, hide_index=True)
     st.subheader("SHAP contributors")
     if explanation.get("values"):

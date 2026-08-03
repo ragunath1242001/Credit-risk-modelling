@@ -6,7 +6,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from .core import ecl, load_data, load_model, risk_bands, train_challenger
+from .core import ecl, load_data, load_model, load_models, risk_bands, train_challenger
 from .extensions import performance_summary
 from .longitudinal import generate_longitudinal
 from .db import save_prediction
@@ -18,9 +18,11 @@ app = FastAPI(title="CreditRiskLab API", version="0.1.0")
 
 class Prediction(BaseModel):
     features: dict[str, float | int] = Field(min_length=1)
+    model_name: str = "Logistic regression"
 
 class BatchPrediction(BaseModel):
     rows: list[dict[str, float | int]] = Field(min_length=1, max_length=1000)
+    model_name: str = "Logistic regression"
 
 
 class ECL(BaseModel):
@@ -54,9 +56,9 @@ def model_info(): return load_model()["metadata"]
 @app.post("/v1/pd/predict")
 def predict(request: Prediction):
     try:
-        pack = load_model(); scorer = joblib.load("artifacts/pd_calibrated.joblib") if Path("artifacts/pd_calibrated.joblib").exists() else pack["model"]
+        models = load_models(); scorer = models[request.model_name]
         probability = float(scorer.predict_proba(pd.DataFrame([request.features]))[0, 1])
-        result = {"request_id": str(uuid4()), "pd": probability, "model_version": pack["metadata"].get("dataset_version", "demo")}
+        result = {"request_id": str(uuid4()), "pd": probability, "model_name": request.model_name, "model_version": "pd-v1"}
         save_prediction(result["request_id"], "/v1/pd/predict", request.features, result)
         return result
     except Exception as exc:
@@ -65,8 +67,8 @@ def predict(request: Prediction):
 @app.post("/v1/pd/batch")
 def batch_predict(request: BatchPrediction):
     try:
-        pack = load_model(); scorer = joblib.load("artifacts/pd_calibrated.joblib") if Path("artifacts/pd_calibrated.joblib").exists() else pack["model"]; probabilities = scorer.predict_proba(pd.DataFrame(request.rows))[:, 1]
-        return {"request_id": str(uuid4()), "predictions": [{"pd": float(p), "risk_band": b} for p, b in zip(probabilities, risk_bands(probabilities))], "model_version": pack["metadata"].get("dataset_version", "demo")}
+        scorer = load_models()[request.model_name]; probabilities = scorer.predict_proba(pd.DataFrame(request.rows))[:, 1]
+        return {"request_id": str(uuid4()), "predictions": [{"pd": float(p), "risk_band": b} for p, b in zip(probabilities, risk_bands(probabilities))], "model_name": request.model_name, "model_version": "pd-v1"}
     except Exception as exc:
         raise HTTPException(400, "invalid batch feature payload") from exc
 
