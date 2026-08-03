@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
 import json
-from credit_risk_lab.core import load_data, load_model, explain_sample
+from credit_risk_lab.core import FEATURE_LABELS, load_data, load_model, explain_sample
 from credit_risk_lab.extensions import calculate_portfolio_ecl, generate_ead, generate_lgd, monitoring_summary, performance_summary
 from credit_risk_lab.longitudinal import generate_longitudinal
 from credit_risk_lab.registry import latest_run
@@ -30,7 +30,7 @@ if page == "Overview":
     st.table({"Field": ["Source", "Dataset version", "SHA-256", "Target mapping"], "Value": [provenance.get("source"), provenance.get("version"), provenance.get("sha256"), provenance.get("target")]})
 elif page == "Portfolio explorer":
     st.metric("Rows", len(data)); st.metric("Bad-outcome rate", f"{data.target.mean():.1%}"); st.bar_chart(data.target.value_counts())
-    st.dataframe(data.head(10), use_container_width=True)
+    st.dataframe(data.head(10).rename(columns=FEATURE_LABELS), use_container_width=True)
 elif page == "PD model lab":
     cols = st.columns(4)
     for col, key in zip(cols, ["roc_auc", "gini", "ks", "brier"]): col.metric(key.upper(), f"{pack['metadata'][key]:.3f}")
@@ -47,10 +47,10 @@ elif page == "Single prediction":
     if st.button("Score sample applicant"):
         p = float(pack["model"].predict_proba(row)[0, 1]); st.metric("Probability of bad outcome", f"{p:.1%}"); st.write("Risk band:", "high" if p >= .5 else "medium" if p >= .2 else "low")
     explanation = explain_sample(pack["model"], data)
-    st.subheader("Applicant features"); st.dataframe(row, use_container_width=True, hide_index=True)
+    st.subheader("Applicant features"); st.dataframe(row.rename(columns=FEATURE_LABELS), use_container_width=True, hide_index=True)
     st.subheader("SHAP contributors")
     if explanation.get("values"):
-        contributors = sorted(({"Feature": k, "Contribution": v} for k, v in explanation["values"].items()), key=lambda item: abs(item["Contribution"]), reverse=True)
+        contributors = sorted(({"Feature": FEATURE_LABELS.get(k, k), "Contribution": v} for k, v in explanation["values"].items()), key=lambda item: abs(item["Contribution"]), reverse=True)
         st.dataframe(contributors, use_container_width=True, hide_index=True)
     else: st.info("SHAP explanation is unavailable in this hosted runtime.")
 elif page == "Expected loss":

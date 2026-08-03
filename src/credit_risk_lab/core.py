@@ -23,6 +23,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 DATA_URL = "https://archive.ics.uci.edu/static/public/522/south+german+credit.zip"
 DATA_VERSION = "south_german_credit_v1"
 ARTIFACT = Path("artifacts/pd_model.joblib")
+FEATURE_LABELS = {
+    "laufkont": "Checking account status", "laufzeit": "Loan duration (months)", "moral": "Credit history", "verw": "Loan purpose", "hoehe": "Loan amount", "sparkont": "Savings account", "beszeit": "Employment duration", "rate": "Installment rate", "famges": "Personal status and sex", "buerge": "Guarantor or other debtor", "wohnzeit": "Residence duration", "verm": "Property", "alter": "Age", "weitkred": "Other installment plans", "wohn": "Housing", "bishkred": "Existing credits", "beruf": "Job status", "pers": "People financially liable", "telef": "Telephone", "gastarb": "Foreign worker"
+}
 
 
 def load_data(cache: Path | None = None) -> tuple[pd.DataFrame, dict]:
