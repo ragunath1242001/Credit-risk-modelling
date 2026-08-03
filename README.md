@@ -42,7 +42,7 @@ cd Credit-risk-modelling
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-full.txt
 ```
 
 Train the models and generate evidence artifacts:
@@ -60,6 +60,8 @@ streamlit run streamlit_app.py
 ```
 
 The app runs in local demo mode and does not require Docker, PostgreSQL, or an externally hosted API.
+
+For the hosted Streamlit demo, `requirements.txt` intentionally contains only the runtime dependencies needed by the app. The larger training/infrastructure environment is in `requirements-full.txt`.
 
 ## API
 
